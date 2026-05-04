@@ -7,11 +7,14 @@ This model is written entirely in Julia, using its [Agents.jl](https://juliadyna
 <img width="234" height="320" alt="AgentsLegend" src="https://github.com/user-attachments/assets/214177d3-c1fb-47a1-92b0-4dd11a244ae3" />
 
 
+
+Since agents are defined as structs, specific fields have been created within each cell type. The **mitochondria** field is a vector of tuples where the x-value is the id assigned to the mitochondrion and the y-value is the health value assigned to the mitochondrion. The **energy** field is 
+
 The model operates in continuous time through the package's EventQueueABM. Events are defined by their propensities and the types of agents that perform that function are specified within the 'types' field; this can be found after the created functions and before initialization. The possible functions performed are described below:
 
 -**Attack:** ROS agent reduces health of mitochondria within cell; if cell is a macrophage, plasticity moves towards M1 side of the spectrum 
 
--**Update OXPHOS:** updates the propensity for OXPHOS to occur within macrophage according to its plasticity; the closer to the M2 side of the spectrum, the more likely OXPHOS will be performed
+-**Update OXPHOS:** updates the propensity for OXPHOS to occur within macrophages according to its plasticity; the closer to the M2 side of the spectrum, the more likely OXPHOS will be performed
 
 -**Internal attack:** intracellular ROS attacks the health of a random mitochondria within the cell and 'DAMPs' agent is released
 
