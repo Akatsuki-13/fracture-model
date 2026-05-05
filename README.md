@@ -4,8 +4,9 @@ This software models the bone tissue microenvironment following fracture in rela
 ## How this model works
 This model is written entirely in Julia, using its [Agents.jl](https://juliadynamics.github.io/Agents.jl/stable/) package. Cellular and molecular elements are created as agents, each designated a set of functions that are performed within each step. The list of agents used in this model are listed below with their respective representative icons.
 
-<img width="234" height="320" alt="AgentsLegend" src="https://github.com/user-attachments/assets/214177d3-c1fb-47a1-92b0-4dd11a244ae3" />
-
+<p align="center">
+  <img width="234" height="320" alt="AgentsLegend" src="https://github.com/user-  attachments/assets/214177d3-c1fb-47a1-92b0-4dd11a244ae3" />
+</p>
 
 
 Since agents are defined as structs, specific fields have been created within each cell type. The **mitochondria** field is a vector of tuples where the x-value is the id assigned to the mitochondrion and the y-value is the health value assigned to the mitochondrion. The **energy** field, when the model is first initialized, is equal to the sum of the mitochondria health values. The energy value is thus also representative of the cell's health. The **plasticity** field exists only within macrophage-type cell agents (MDM and Osteomac); this represents the spectrum between the M1 and M2 phenotype. 0-0.5 indicates the M1 phenotype, while 0.5-1 indicates the M2 phenotype. Similarly, the **oxphos_propensity** field only exists within macrophage agents and is directly correlated to the macrophage's plasticity. The closer towards 1.0 the plasticity is, the more likely oxidative phosphorylation will occur. The **mitophagy**, **mitochondrial fusion**, and **mitochondrial fission** propensity fields are within all cell agent types, although they are by default set to 1.0 with no properties that affect their values as of yet. The **ROS** field represents the number of intracellular ROS molecules that are produced as a result of OXPHOS. 
