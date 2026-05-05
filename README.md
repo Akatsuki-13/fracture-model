@@ -15,6 +15,7 @@ Similarly, the **oxphos_propensity** field only exists within macrophage agents 
 
 The model operates in continuous time through the package's EventQueueABM. Events are defined by their propensities and the types of agents that perform that function are specified within the 'types' field; this can be found after the created functions and before initialization. The possible functions performed are described below:
 
+### Current Model Functions
 -**Attack:** ROS agent reduces health of mitochondria within cell; if cell is a macrophage, plasticity moves towards M1 side of the spectrum 
 
 -**Update OXPHOS:** updates the propensity for OXPHOS to occur within macrophages according to its plasticity; the closer to the M2 side of the spectrum, the more likely OXPHOS will be performed
