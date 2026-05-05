@@ -1,4 +1,8 @@
 # Fracture Model
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/66467959-1730-45f2-9255-22828e105b96" />
+</p>
+
 This software models the bone tissue microenvironment following fracture in relation to nutrients availability and molecular signaling patterns, while demonstrating mitochondrial transfer dynamics and intracellular mitochodrial homeostasis. 
 
 ## How this model works
@@ -9,6 +13,8 @@ This model is written entirely in Julia, using its [Agents.jl](https://juliadyna
 </p>
 
 
+Upon initialization, a fracture line of 'Fracture Unit' agents is created from the top to the bottom of the model with its width varying randomly between 1 and 5 units for biological realism. 
+
 Since agents are defined as structs, specific fields have been created within each cell type. The **mitochondria** field is a vector of tuples where the x-value is the id assigned to the mitochondrion and the y-value is the health value assigned to the mitochondrion. The **energy** field, when the model is first initialized, is equal to the sum of the mitochondria health values. The energy value is thus also representative of the cell's health. The **plasticity** field exists only within macrophage-type cell agents (MDM and Osteomac); this represents the spectrum between the M1 and M2 phenotype. 0-0.5 indicates the M1 phenotype, while 0.5-1 indicates the M2 phenotype. 
 
 Similarly, the **oxphos_propensity** field only exists within macrophage agents and is directly correlated to the macrophage's plasticity. The closer towards 1.0 the plasticity is, the more likely oxidative phosphorylation will occur. The **mitophagy**, **mitochondrial fusion**, and **mitochondrial fission** propensity fields are within all cell agent types, although they are by default set to 1.0 with no properties that affect their values as of yet. The **ROS** field represents the number of intracellular ROS molecules that are produced as a result of OXPHOS. 
@@ -16,44 +22,62 @@ Similarly, the **oxphos_propensity** field only exists within macrophage agents 
 The model operates in continuous time through the package's EventQueueABM. Events are defined by their propensities and the types of agents that perform that function are specified within the 'types' field; this can be found after the created functions and before initialization. The possible functions performed are described below:
 
 ### Current Model Functions
--**Attack:** ROS agent reduces health of mitochondria within cell; if cell is a macrophage, plasticity moves towards M1 side of the spectrum 
+- **Attack:** ROS agent reduces health of mitochondria within cell; if cell is a macrophage, plasticity moves towards M1 side of the spectrum 
 
--**Update OXPHOS:** updates the propensity for OXPHOS to occur within macrophages according to its plasticity; the closer to the M2 side of the spectrum, the more likely OXPHOS will be performed
+- **Update OXPHOS:** updates the propensity for OXPHOS to occur within macrophages according to its plasticity; the closer to the M2 side of the spectrum, the more likely OXPHOS will be performed
 
--**Internal attack:** intracellular ROS attacks the health of a random mitochondria within the cell and 'DAMPs' agent is released
+- **Internal attack:** intracellular ROS attacks the health of a random mitochondria within the cell and 'DAMPs' agent is released
 
--**Abyss:** molecular agents that share a position with a fracture unit will 'disappear' from the model
+- **Abyss:** molecular agents that share a position with a fracture unit will 'disappear' from the model
 
--**Remove ROS:** intracellular ROS is removed from the cell using one energy point
+- **Remove ROS:** intracellular ROS is removed from the cell using one energy point
 
--**Transient move:** allows molecular agents to move freely throughout the model 
+- **Transient move:** allows molecular agents to move freely throughout the model 
 
--**Active move:** cellular agents move throughout model using 0.1 energy points 
+- **Active move:** cellular agents move throughout model using 0.1 energy points 
 
--**Idle:** keeps 'Osteomac' and 'Fracture Unit' agents idle 
+- **Idle:** keeps 'Osteomac' and 'Fracture Unit' agents idle 
 
--**Damage:** cellular agents that share a position with a 'Fracture Unit' agent will continuously sustain damage and release a 'DAMPs' agent in response 
+- **Damage:** cellular agents that share a position with a 'Fracture Unit' agent will continuously sustain damage and release a 'DAMPs' agent in response 
 
--**M1 polarization:** M1 cytokines and DAMPs agents move macrophage plasticity towards M1 side of spectrum
+- **M1 polarization:** M1 cytokines and DAMPs agents move macrophage plasticity towards M1 side of spectrum
 
--**M2 polarization:** M2 cytokine agents move macrophage plasticity towards M2 side of spectrum 
+- **M2 polarization:** M2 cytokine agents move macrophage plasticity towards M2 side of spectrum 
 
--**Release M1 cytokines:** M1 cytokine agent is released by cellular agent in response to interaction with M1 cytokine agent in environment
+- **Release M1 cytokines:** M1 cytokine agent is released by cellular agent in response to interaction with M1 cytokine agent in environment
 
--**Glycolysis:** cellular agents use one glucose agent to add 0.1 energy points per mitochondria and release one ROS agent and one M1 cytokine, the latter released only by macrophage agents 
+- **Glycolysis:** cellular agents use one glucose agent to add 0.1 energy points per mitochondria and release one ROS agent and one M1 cytokine, the latter released only by macrophage agents 
 
--**OXPHOS:** oxidative phosphorylation is performed by cellular agents, where six oxygen agents are taken up to add the sum of all mitochondria health values to the cell's energy field; intracellular ROS are released according to the health of the mitochondria within the cell, the less healthy, the more ROS accumulate
+- **OXPHOS:** oxidative phosphorylation is performed by cellular agents, where six oxygen agents are taken up to add the sum of all mitochondria health values to the cell's energy field; intracellular ROS are released according to the health of the mitochondria within the cell, the less healthy, the more ROS accumulate
 
--**Mitophagy:** removes mitochondria with health values below 0.1
+- **Mitophagy:** removes mitochondria with health values below 0.1
 
--**Mitochondrial fusion:** 'fuses' two mitochondria within a cell; the resulting mitochondrion's health value is the average health value of the two mitochondria 
+- **Mitochondrial fusion:** 'fuses' two mitochondria within a cell; the resulting mitochondrion's health value is the average health value of the two mitochondria 
 
--**Mitochondrial fission:** creates a copy of a random mitochondrion within the cell
+- **Mitochondrial fission:** creates a copy of a random mitochondrion within the cell
 
--**Apoptosis:** cell will destroy itself  if its energy level is below 1.0; three 'Cell Debris' agents are released as a result 
+- **Apoptosis:** cell will destroy itself  if its energy level is below 1.0; three 'Cell Debris' agents are released as a result 
 
--**Phagocytosis:** macrophage agents uptake 'Cell Debris' agents, moving the plasticity towards the M1 side of the spectrum and releasing an M1 cytokine agent and ROS agent
+- **Phagocytosis:** macrophage agents uptake 'Cell Debris' agents, moving the plasticity towards the M1 side of the spectrum and releasing an M1 cytokine agent and ROS agent
 
--**Transfer:** cellular agents can transfer a mitochondrion with a health of average value compared to all mitochondria within the cell to another cellular agent
+- **Transfer:** cellular agents can transfer a mitochondrion with a health of average value compared to all mitochondria within the cell to another cellular agent
 
--**Sense:** 'MDM' agents move towards nearby cell debris, DAMPs, or cells of the lowest energy value 
+- **Sense:** 'MDM' agents move towards nearby cell debris, DAMPs, or the cell of the lowest energy value 
+
+
+## Example Model 
+
+<p align="center">
+<video src="https://github.com/user-attachments/assets/d540315c-8b9f-491d-9803-fcf8bc03d954"
+</p>
+
+
+## Data Extraction and Analysis 
+To extract the agent and model data for analysis, the AnalysisModel.jl file should be used. To load the model into the file, copy the file path of the saved model into the parenthesis after 'include' on line 4. 
+
+A one-way ANOVA test is performed based on three possible conditions within the tissue environment: hypoxic, normal, and nutrient-rich. The mean tissue health, ratio of M1:M2 macrophages, ROS count, and osteoblast:osteoclast ratio are compared across these environmental conditions. According to previous analysis, a p-value of 0.0001 was found. The results are shown below. 
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/a7e09c82-458b-4e0d-825d-7b010f15b3dd" />
+</p>
+
