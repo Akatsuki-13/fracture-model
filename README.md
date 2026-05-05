@@ -5,7 +5,7 @@ This software models the bone tissue microenvironment following fracture in rela
 This model is written entirely in Julia, using its [Agents.jl](https://juliadynamics.github.io/Agents.jl/stable/) package. Cellular and molecular elements are created as agents, each designated a set of functions that are performed within each step. The list of agents used in this model are listed below with their respective representative icons.
 
 <p align="center">
-  <img src="https://github.com/user-  attachments/assets/214177d3-c1fb-47a1-92b0-4dd11a244ae3" />
+  <img src="https://github.com/user-attachments/assets/214177d3-c1fb-47a1-92b0-4dd11a244ae3" />
 </p>
 
 
