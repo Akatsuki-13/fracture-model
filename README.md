@@ -68,7 +68,7 @@ The model operates in continuous time through the package's EventQueueABM. Event
 ## Example Model 
 
 <p align="center">
-<video src="https://github.com/user-attachments/assets/d540315c-8b9f-491d-9803-fcf8bc03d954"
+<video src="https://github.com/user-attachments/assets/f5234995-d012-4f6e-9c8d-b83f3df1879c"
 </p>
 
 
