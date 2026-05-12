@@ -374,14 +374,14 @@ function glycolysis!(agent, model)
     # Add 0.1 energy per mitochondria 
     agent.energy = agent.energy + (0.1 * length(agent.mitochondria))
     
-    # Release ROS around agent
-    nbrs = collect(nearby_positions(agent.pos, model, 1))
-    isempty(nbrs) && return
-    pos = rand(abmrng(model), nbrs)
-    add_agent!(pos, ROS, model)
+    # Release ROS into agent
+    agent.ROS += 1
 
     # Release M1 cytokine - only macrophages; surrounding agent 
     if agent isa MDM || agent isa Osteomac
+        nbrs = collect(nearby_positions(agent.pos, model, 1))
+        isempty(nbrs) && return
+        pos = rand(abmrng(model), nbrs)
         add_agent!(pos, M1_cytokines, model)
     else return 
     end
@@ -658,13 +658,26 @@ function sense!(agent, model)
         # Release cytokine in response
         nbrs = collect(nearby_positions(agent.pos, model, 1))
         isempty(nbrs) && return 
-
         pos = rand(abmrng(model), nbrs)
         add_agent!(pos, M1_cytokines, model)
         return
     end
 
-    # Priority 3: Move towards lowest energy cell 
+    # Priority 3: Move towards ROS agents
+    nearby_ROS = filter(r -> r isa ROS, contenders)
+    if !isempty(nearby_ROS) && return 
+        target = argmin(a -> abs(a.pos[1] - agent.pos[1]) +
+                             abs(a.pos[2] - agent.pos[2]), nearby_ROS)
+        dx = sign(target.pos[1] - agent.pos[1])
+        dy = sign(target.pos[2] - agent.pos[2])
+        gs = spacesize(model)
+        new_pos = (mod1(agent.pos[1] + dx, gs[1]),
+                   mod1(agent.pos[2] + dy, gs[2]))
+        move_agent!(agent, new_pos, model)
+        return
+    end
+
+    # Priority 4: Move towards lowest energy cell 
     nearby_cells = filter(a -> 
         a isa MDM || a isa Osteomac ||
         a isa Osteoblast || a isa Osteoclast ||
@@ -1040,84 +1053,3 @@ end
 # Capture the returned model
 
 bone_repair = initialize_bone_model()
-
-
-# Data Visualization 
-using InteractiveDynamics 
-using GLMakie
-
-# Color, shape, and size scheme 
-agent_color(a::FractureUnit) = :red2
-agent_color(a::MDM)          = :yellowgreen
-agent_color(a::Osteomac)     = :chartreuse4
-agent_color(a::Osteoblast)   = :royalblue
-agent_color(a::Osteoclast)   = :hotpink2
-agent_color(a::Osteocyte)    = :powderblue
-agent_color(a::Glucose)      = :darkorange1
-agent_color(a::Oxygen)       = :deepskyblue3
-agent_color(a::ROS)          = :purple2
-agent_color(a::M1_cytokines) = :crimson
-agent_color(a::M2_cytokines) = :steelblue3
-agent_color(a::DAMPs)        = :brown
-agent_color(a::CellDebris)   = :gray
-
-agent_marker(a::FractureUnit) = :rect
-agent_marker(a::MDM)          = :circle
-agent_marker(a::Osteomac)     = :circle
-agent_marker(a::Osteoblast)   = :circle
-agent_marker(a::Osteoclast)   = :circle
-agent_marker(a::Osteocyte)    = :circle
-agent_marker(a::Glucose)      = :hexagon
-agent_marker(a::Oxygen)       = :star4
-agent_marker(a::ROS)          = :star8
-agent_marker(a::M1_cytokines) = :xcross
-agent_marker(a::M2_cytokines) = :cross
-agent_marker(a::DAMPs)        = :diamond
-agent_marker(a::CellDebris)   = :star8
-
-agent_size(a::FractureUnit) = 8
-agent_size(a::MDM)          = 14
-agent_size(a::Osteomac)     = 14
-agent_size(a::Osteoblast)   = 13
-agent_size(a::Osteoclast)   = 13
-agent_size(a::Osteocyte)    = 12
-agent_size(a::Glucose)      = 6
-agent_size(a::Oxygen)       = 4
-agent_size(a::ROS)          = 7
-agent_size(a::M1_cytokines) = 5
-agent_size(a::M2_cytokines) = 5
-agent_size(a::DAMPs)        = 5
-agent_size(a::CellDebris)   = 5
-
-# Slider to change glucose and oxygen levels 
-params = Dict(
-    :n_glucose => 50:50:500,
-    :n_oxygen => 200:100:1200
-)
-
-fig, ax, abmobs = abmplot(bone_repair;
-    agent_color,
-    agent_marker,
-    agent_size,
-    add_controls = true, 
-    params = params,
-    figure = (; size = (900, 900)),
-    axis = (; title = "Bone Repair Model"),
-)
-
-# Slider/button that allows user to add M2 cytokines to illustrate potential therapuetic effects
-# for resolving inflammation 
-add_m2!(model) = add_agent!(
-    rand(1:spacesize(model)[1]), rand(1:spacesize(model)[2]),
-    M2_cytokines, model
-)
-
-# Add an M2 cytokine button to figure 
-m2_button = Button(fig[3, 1]; label = "Add M2 Cytokines", tellwidth = false)
-on(m2_button.clicks) do _
-    for _ in 1:10 # adds burst of 10 M2 cytokines per click 
-        add_m2!(abmobs.model[])
-    end
-end
-
-display(fig)
