@@ -17,6 +17,7 @@ using Random
     mito_fusion_propensity::Float64 
     mito_fission_propensity::Float64 
     oxphos_propensity::Float64 
+    glycolysis_propensity::Float64
     ROS::Int 
 end
 
@@ -28,6 +29,7 @@ end
     mito_fusion_propensity::Float64 
     mito_fission_propensity::Float64 
     oxphos_propensity::Float64 
+    glycolysis_propensity::Float64
     ROS::Int 
 end
 
@@ -92,12 +94,15 @@ agents = Union{MDM, Osteomac, Osteoblast, Osteoclast, Osteocyte, Glucose, Oxygen
 M1_cytokines, M2_cytokines, DAMPs, CellDebris, ROS, FractureUnit}
 
 # Functions:
-# Create a helper function to compute oxphos_propensity 
+# Create a helper functions to compute oxphos_propensity + glycolysis_propensity
 
 function update_oxphos!(agent)
     agent.oxphos_propensity = clamp(0.1*(100)^agent.plasticity, 0, 10)
 end
 
+function update_glycolysis!(agent)
+    agent.glycolysis_propensity = clamp(1.7783*(0.003162)^agent.plasticity, 0, 10)
+end
 
 # Create an attack function for extracellular ROS
 
@@ -117,6 +122,7 @@ function attack!(agent, model)
     if target isa MDM || target isa Osteomac
         target.plasticity -= 0.05
         update_oxphos!(target)
+        update_glycolysis!(target)
     else 
         return
     end
@@ -233,6 +239,7 @@ function active_move!(agent, model)
     newpos = (mod1(agent.pos[1] + dx, gs[1]),
               mod1(agent.pos[2] + dy, gs[2]))
     move_agent!(agent, newpos, model)
+    agent.energy -= 0.1
 end
 
 # Create 'idle!' function
@@ -288,6 +295,7 @@ function M1_polarization!(agent, model)
     # Move macrophage plasticity towards M1 spectrum 
     target.plasticity -= 0.05
     update_oxphos!(target)
+    update_glycolysis!(target)
 
     # Remove cytokine from the environment 
     remove_agent!(agent, model)
@@ -310,6 +318,7 @@ function M2_polarization!(agent, model)
     # Move macrophage plasticity towards M2 spectrum 
     target.plasticity += 0.05
     update_oxphos!(target)
+    update_glycolysis!(target)
 
     # Remove cytokine from environment
     remove_agent!(agent, model)
@@ -341,21 +350,22 @@ end
 
 # Create metabolism functions - glycolysis and OXPHOS
 
-function glycolysis!(agent, model) # Change this to only glucose since it can occur anaerobically
-    # Collect surrounding reactants (Glucose and oxygen)
+function glycolysis!(agent, model) 
+    # Collect surrounding reactants (glucose and oxygen)
     contenders = collect(nearby_agents(agent, model, 3))
-    reactants = filter(m -> m isa Glucose, contenders)
+    reactants = filter(m -> m isa Glucose || m isa Oxygen, contenders)
     isempty(reactants) && return 
 
     # Count how many Glucose and oxygen are around 
     n_Glucose = count(m -> m isa Glucose, reactants)
+    n_oxygen = count(m -> m isa Oxygen, reactants)
 
     # Only proceed if 1 Glucose and 6 oxygen agents are present, 
     # then remove agents
-    if n_Glucose >= 1 
+    if n_Glucose >= 1 && n_oxygen >= 6
         Glucose_targets = filter(m -> m isa Glucose, reactants)[1:1]
-
-        for r in vcat(Glucose_targets)
+        oxygen_targets = filter(m -> m isa Oxygen, reactants)[1:6]
+        for r in vcat(Glucose_targets, oxygen_targets)
             remove_agent!(r, model)
         end
     end
@@ -364,17 +374,14 @@ function glycolysis!(agent, model) # Change this to only glucose since it can oc
     agent.energy = agent.energy + (0.1 * length(agent.mitochondria))
     
     # Release ROS around agent
-    gs = spacesize(model)
-    pos = (rand(abmrng(model), 1:gs[1]),
-               rand(abmrng(model), 1:gs[2]))
+    nbrs = collect(nearby_positions(agent.pos, model, 1))
+    isempty(nbrs) && return
+    pos = rand(abmrng(model), nbrs)
     add_agent!(pos, ROS, model)
 
     # Release M1 cytokine - only macrophages; surrounding agent 
     if agent isa MDM || agent isa Osteomac
-    gs = spacesize(model)
-    pos = (rand(abmrng(model), 1:gs[1]),
-               rand(abmrng(model), 1:gs[2]))
-    add_agent!(pos, M1_cytokines, model)
+        add_agent!(pos, M1_cytokines, model)
     else return 
     end
 end
@@ -553,6 +560,7 @@ function phagocytosis!(agent, model)
     # Move plasticity towards M1 polarization state 
     agent.plasticity -= 0.1
     update_oxphos!(agent)
+    update_glycolysis!(agent)
 
     # Release cytokine and ROS in response
     nbrs = collect(nearby_positions(agent.pos, model, 1))
@@ -744,11 +752,11 @@ polarize_to_M2_event = AgentEvent(
 )
 release_M1_event = AgentEvent(
     action! = releaseM1cyto!, propensity = releaseM1cyto_propensity,
-    types = Osteoblast
+    types = Union{MDM, Osteomac}
 )
 glycolysis_event = AgentEvent(
     action! = glycolysis!, propensity = glycolysis_propensity,
-    types = Union{MDM, Osteomac, Osteoblast, Osteoclast}
+    types = Union{Osteoblast, Osteoclast, Osteocyte}
 )
 OXPHOS_event = AgentEvent(
     action! = OXPHOS!, propensity = oxphos_propensity, 
@@ -756,6 +764,10 @@ OXPHOS_event = AgentEvent(
 )
 macro_OXPHOS_event = AgentEvent(
     action! = OXPHOS!, propensity = (o, model) -> o.oxphos_propensity,
+    types = Union{MDM, Osteomac}
+)
+macro_glycolysis_event = AgentEvent(
+    action! = glycolysis!, propensity = (o, model) -> o.glycolysis_propensity,
     types = Union{MDM, Osteomac}
 )
 mitophagy_event = AgentEvent(
@@ -792,7 +804,7 @@ sensing_event = AgentEvent(
 
 
 events = (attack_event, internal_attack_event, abyss_event, removeROS_event, active_move_event, transient_move_event, idle_event, damage_event,
-polarize_to_M1_event, polarize_to_M2_event, release_M1_event, glycolysis_event, macro_OXPHOS_event, OXPHOS_event, mitophagy_event, 
+polarize_to_M1_event, polarize_to_M2_event, release_M1_event, glycolysis_event, macro_OXPHOS_event, macro_glycolysis_event, OXPHOS_event, mitophagy_event, 
 mito_fusion_event, mito_fission_event, apoptosis_event, phagocytosis_event, transfer_event, sensing_event)
 
 
@@ -925,6 +937,7 @@ function initialize_bone_model(; x = 50, y = 50, seed = 13,
             mito_fusion_propensity = 1.0,
             mito_fission_propensity = 1.0,
             oxphos_propensity = 0.1*(100)^0.5,
+            glycolysis_propensity = 1.7783*0.003162^0.5,
             ROS = 0,
         )
     end
@@ -980,6 +993,7 @@ function initialize_bone_model(; x = 50, y = 50, seed = 13,
             mito_fusion_propensity = 1.0, 
             mito_fission_propensity = 1.0,
             oxphos_propensity = 0.1*(100)^0.5,
+            glycolysis_propensity = 1.7783*0.003162^0.5,
             ROS = 0
         )
     end
