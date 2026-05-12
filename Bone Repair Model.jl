@@ -351,6 +351,7 @@ end
 # Create metabolism functions - glycolysis and OXPHOS
 
 function glycolysis!(agent, model) 
+    isempty(agent.mitochondria) && return
     # Collect surrounding reactants (glucose and oxygen)
     contenders = collect(nearby_agents(agent, model, 3))
     reactants = filter(m -> m isa Glucose || m isa Oxygen, contenders)
@@ -390,6 +391,7 @@ end
 # Create OXPHOS function 
 
 function OXPHOS!(agent, model)
+    isempty(agent.mitochondria) && return
     # Collect surrounding oxygen 
     contenders = collect(nearby_agents(agent, model, 3))
     oxygens = filter(o -> o isa Oxygen, contenders)
@@ -462,8 +464,7 @@ function mito_fusion!(agent, model)
     n_mitochondria = length(agent.mitochondria)
     
     # Only perform if n_mitochondria >= 2
-    if n_mitochondria < 2
-        return
+    if n_mitochondria < 2 && return
     
     # Select two mitochondria 
     first_mito = rand(agent.mitochondria)
@@ -575,6 +576,7 @@ end
 # Create a 'transfer!' function 
 
 function transfer!(agent, model)
+    isempty(agent.mitochondria) && return
     contenders = collect(nearby_agents(agent, model, 1))
 
     # Since mitochondria can be transferred from macrophages to any cell, 
