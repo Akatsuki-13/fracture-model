@@ -81,3 +81,10 @@ A one-way ANOVA test is performed based on three possible conditions within the 
   <img src="https://github.com/user-attachments/assets/a7e09c82-458b-4e0d-825d-7b010f15b3dd" />
 </p>
 
+
+## Known Issues
+### Bound limits for cell dynamics
+
+### Non-random fracture line generation 
+
+### 
