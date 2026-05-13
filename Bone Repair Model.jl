@@ -36,27 +36,33 @@ end
 @agent struct Osteoblast(GridAgent{2})
     mitochondria::Vector{Tuple{Int, Float64}} 
     energy::Float64 
-    mitophagy_propensity::Float64 = 1.0
-    mito_fusion_propensity::Float64 = 1.0
-    mito_fission_propensity::Float64 = 1.0
+    mitophagy_propensity::Float64 = 0.1
+    mito_fusion_propensity::Float64 = 0.3
+    mito_fission_propensity::Float64 = 0.5
+    oxphos_propensity::Float64 
+    glycolysis_propensity::Float64
     ROS::Int = 0 
 end
 
 @agent struct Osteoclast(GridAgent{2})
     mitochondria::Vector{Tuple{Int, Float64}}
     energy::Float64
-    mitophagy_propensity::Float64 = 1.0
-    mito_fusion_propensity::Float64 = 1.0
-    mito_fission_propensity::Float64 = 1.0
+    mitophagy_propensity::Float64 = 0.1
+    mito_fusion_propensity::Float64 = 0.3
+    mito_fission_propensity::Float64 = 0.5
+    oxphos_propensity::Float64 
+    glycolysis_propensity::Float64
     ROS::Int = 0 
 end
 
 @agent struct Osteocyte(GridAgent{2})
     mitochondria::Vector{Tuple{Int, Float64}}
     energy::Float64
-    mitophagy_propensity::Float64 = 1.0
-    mito_fusion_propensity::Float64 = 1.0
-    mito_fission_propensity::Float64 = 1.0
+    mitophagy_propensity::Float64 = 0.1
+    mito_fusion_propensity::Float64 = 0.3
+    mito_fission_propensity::Float64 = 0.5
+    oxphos_propensity::Float64 
+    glycolysis_propensity::Float64
     ROS::Int = 0
 end
 
@@ -97,11 +103,11 @@ M1_cytokines, M2_cytokines, DAMPs, CellDebris, ROS, FractureUnit}
 # Create a helper functions to compute oxphos_propensity + glycolysis_propensity
 
 function update_oxphos!(agent)
-    agent.oxphos_propensity = clamp(0.1*(100)^agent.plasticity, 0, 10)
+    agent.oxphos_propensity = clamp(0.1*(100)^agent.plasticity, 0, 1000)
 end
 
 function update_glycolysis!(agent)
-    agent.glycolysis_propensity = clamp(1.7783*(0.003162)^agent.plasticity, 0, 10)
+    agent.glycolysis_propensity = clamp(1.7783*(0.003162)^agent.plasticity, 0, 1000)
 end
 
 # Create an attack function for extracellular ROS
@@ -707,23 +713,21 @@ end
 
 # Defnining events and their propensities 
 
-attack_propensity = 1.0
-internal_attack_propensity = 1.0
-abyss_propensity = 1.0
-removeROS_propensity = 1.0
-transient_move_propenisty = 1.0
-active_move_propensity = 1.0
+attack_propensity = 10.0
+internal_attack_propensity = 10.0
+abyss_propensity = 20.0
+removeROS_propensity = 20.0
+transient_move_propenisty = 20.0
+active_move_propensity = 10.0
 idle_propensity = 1.0
-damage_propensity = 1.0
+damage_propensity = 2.0
 polarize_to_M1_propensity = 1.0
-polarize_to_M2_propensity = 1.0
-releaseM1cyto_propensity = 1.0
-glycolysis_propensity = 1.0 
-oxphos_propensity = 1.0 
-apoptosis_propensity = 1.0
+polarize_to_M2_propensity = 0.5
+releaseM1cyto_propensity = 5.0
+apoptosis_propensity = 0.04
 phagocytosis_propensity = 1.0 
-transfer_propensity = 1.0 
-sensing_propensity = 1.0 
+transfer_propensity = 0.1
+sensing_propensity = 2.0 
 
 attack_event = AgentEvent(
     action! = attack!, propensity = attack_propensity,
@@ -769,21 +773,13 @@ release_M1_event = AgentEvent(
     action! = releaseM1cyto!, propensity = releaseM1cyto_propensity,
     types = Union{MDM, Osteomac}
 )
-glycolysis_event = AgentEvent(
-    action! = glycolysis!, propensity = glycolysis_propensity,
-    types = Union{Osteoblast, Osteoclast, Osteocyte}
-)
 OXPHOS_event = AgentEvent(
-    action! = OXPHOS!, propensity = oxphos_propensity, 
-    types = Union{Osteoblast, Osteoclast, Osteocyte}
-)
-macro_OXPHOS_event = AgentEvent(
     action! = OXPHOS!, propensity = (o, model) -> o.oxphos_propensity,
-    types = Union{MDM, Osteomac}
+    types = Union{MDM, Osteomac, Osteoblast, Osteoclast, Osteocyte}
 )
-macro_glycolysis_event = AgentEvent(
+glycolysis_event = AgentEvent(
     action! = glycolysis!, propensity = (o, model) -> o.glycolysis_propensity,
-    types = Union{MDM, Osteomac}
+    types = Union{MDM, Osteomac, Osteoblast, Osteoclast, Osteocyte}
 )
 mitophagy_event = AgentEvent(
     action! = mitophagy!, 
@@ -819,7 +815,7 @@ sensing_event = AgentEvent(
 
 
 events = (attack_event, internal_attack_event, abyss_event, removeROS_event, active_move_event, transient_move_event, idle_event, damage_event,
-polarize_to_M1_event, polarize_to_M2_event, release_M1_event, glycolysis_event, macro_OXPHOS_event, macro_glycolysis_event, OXPHOS_event, mitophagy_event, 
+polarize_to_M1_event, polarize_to_M2_event, release_M1_event, glycolysis_event, OXPHOS_event, mitophagy_event, 
 mito_fusion_event, mito_fission_event, apoptosis_event, phagocytosis_event, transfer_event, sensing_event)
 
 
@@ -966,7 +962,9 @@ function initialize_bone_model(; x = 50, y = 50, seed = 13,
 
         add_agent!(pos, Osteoblast, model;
             mitochondria = mitos,
-            energy = energy0
+            energy = energy0,
+            oxphos_propensity = 1.0,
+            glycolysis_propensity = 3.0
         )
     end
 
@@ -980,7 +978,9 @@ function initialize_bone_model(; x = 50, y = 50, seed = 13,
 
             add_agent!(pos, Osteoclast, model;
                 mitochondria = mitos,
-                energy = energy0
+                energy = energy0,
+                oxphos_propensity = 3.0,
+                glycolysis_propensity = 1.0
             )
         end
     end
@@ -1023,6 +1023,8 @@ function initialize_bone_model(; x = 50, y = 50, seed = 13,
         add_agent!(pos, Osteocyte, model;
             mitochondria = mitos,
             energy = energy0,
+            oxphos_propensity = 0.5,
+            glycolysis_propensity = 0.5
         )
     end
     
@@ -1137,3 +1139,4 @@ on(m2_button.clicks) do _
 end
 
 display(fig)
+ 
