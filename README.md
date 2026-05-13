@@ -75,12 +75,6 @@ The model operates in continuous time through the package's EventQueueABM. Event
 ## Data Extraction and Analysis 
 To extract the agent and model data for analysis, the AnalysisModel.jl file should be used. To load the model into the file, copy the file path of the saved model into the parenthesis after 'include' on line 4. 
 
-A one-way ANOVA test is performed based on three possible conditions within the tissue environment: hypoxic, normal, and nutrient-rich. The mean tissue health, ratio of M1:M2 macrophages, ROS count, and osteoblast:osteoclast ratio are compared across these environmental conditions. According to previous analysis, a p-value of 0.0001 was found. The results are shown below. 
-
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/a7e09c82-458b-4e0d-825d-7b010f15b3dd" />
-</p>
-
 
 ## Known Issues
 ### Bound limits for cell dynamics
